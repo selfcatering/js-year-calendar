@@ -744,7 +744,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 							}
 						}
 
-						parent.style.background = `linear-gradient(-45deg, ${events[events.length - 1].color}, ${events[events.length - 1].color} 49%, ${otherColor} 51%, ${otherColor})`;
+						parent.style.background = `linear-gradient(-45deg, ${events[events.length - 1].color}, ${events[events.length - 1].color} 50%, rgb(255, 255, 255) 50%, rgb(255, 255, 255) 51%, ${otherColor} 51%, ${otherColor})`;
 					}
 					else if (this.options.roundRangeLimits) {
 						parent.classList.add('round-left');
@@ -923,6 +923,67 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 						}
 					}
 				});
+
+				cell.addEventListener('touchstart', (e: TouchEvent) => {
+					var currentDate = this._getDate(e.currentTarget);
+
+					if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
+					{
+						this._mouseDown = true;
+						this._rangeStart = this._rangeEnd = currentDate;
+						this._refreshRange();
+					}
+				});
+
+				cell.addEventListener('touchmove', (e: TouchEvent) => {
+					if (this._mouseDown) {
+						try {
+							var touchedElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+							var currentDate = this._getDate(touchedElement);
+						} catch (error) {
+							return
+						}
+
+						if (!this.options.allowOverlap)
+						{
+							var newDate =  new Date(this._rangeStart.getTime());
+
+							if (newDate < currentDate) {
+								var nextDate = new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate() + 1);
+								while (newDate < currentDate) {
+									if (!this.isThereFreeSlot(nextDate, false))
+									{
+										break;
+									}
+
+									newDate.setDate(newDate.getDate() + 1);
+									nextDate.setDate(nextDate.getDate() + 1);
+								}
+							}
+							else {
+								var nextDate = new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate() - 1);
+								while (newDate > currentDate) {
+									if (!this.isThereFreeSlot(nextDate, true))
+									{
+										break;
+									}
+
+									newDate.setDate(newDate.getDate() - 1);
+									nextDate.setDate(nextDate.getDate() - 1);
+								}
+							}
+
+							currentDate = newDate;
+						}
+
+						var oldValue = this._rangeEnd;
+						this._rangeEnd = currentDate;
+
+						if (oldValue.getTime() != this._rangeEnd.getTime()) {
+							this._refreshRange();
+						}
+					}
+				});
 			}
 
 			/* Hover date */
@@ -951,6 +1012,22 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 		if (this.options.enableRangeSelection) {
 			// Release range selection
 			window.addEventListener('mouseup', e => {
+				if (this._mouseDown) {
+					this._mouseDown = false;
+					this._refreshRange();
+
+					var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
+					var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
+
+					this._triggerEvent('selectRange', {
+						startDate: minDate,
+						endDate: maxDate,
+						events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+					});
+				}
+			});
+
+			window.addEventListener('touchend', (e: TouchEvent) => {
 				if (this._mouseDown) {
 					this._mouseDown = false;
 					this._refreshRange();

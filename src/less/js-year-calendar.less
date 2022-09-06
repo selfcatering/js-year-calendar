@@ -166,6 +166,7 @@
 			border-left: 1px solid #eee;
 			width: 14.2857%;
     	padding-bottom: 14.2857%;
+			touch-action: none; // important to support touch events on days
 
 			&:last-child {
 				border-right: 1px solid #eee;
@@ -186,16 +187,22 @@
 			.day-content {
 				position: absolute;
 				display: inline-block;
-				height: 15px;
 				font-size: 10px;
 				line-height: 15px;
 				font-weight: 400;
 				top: 2px;
-				left: 1px;
-				right: 1px;
+				bottom: 2px;
+				left: 2px;
+				right: 2px;
 				pointer-events: none;
 				text-align: left;
-				text-indent: 4px;
+				text-indent: 3px;
+			}
+
+			&:hover {
+				cursor: pointer;
+				outline: 1px solid #333;
+				z-index: 1;
 			}
 		}
 
