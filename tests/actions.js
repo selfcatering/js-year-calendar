@@ -95,12 +95,12 @@ test('range selection without option', () => {
     expect(end.classList).not.toContain('range');
 });
 
-test('range selection with option', () => {
+test('range selection with option without touch', () => {
     const calendar = new Calendar('#calendar', { enableRangeSelection: true });
 
     var begin = getDay(2, 2);
     var end = getDay(2, 10);
-    triggerEvent(begin, 'mousedown');
+    triggerEvent(begin, 'click');
     triggerEvent(end, 'mouseenter');
 
     expect(getDay(2, 1).classList).not.toContain('range');
@@ -112,7 +112,7 @@ test('range selection with option', () => {
     expect(getDay(2, 11).classList).not.toContain('range');
 });
 
-test('range selection without overlap', () => {
+test('range selection without overlap without touch', () => {
     const calendar = new Calendar('#calendar', {
         enableRangeSelection: true,
         allowOverlap: false,
@@ -123,7 +123,7 @@ test('range selection without overlap', () => {
 
     var begin = getDay(2, 2);
     var end = getDay(2, 10);
-    triggerEvent(begin, 'mousedown');
+    triggerEvent(begin, 'click');
     triggerEvent(end, 'mouseenter');
 
     expect(getDay(2, 5).classList).toContain('range');
@@ -132,7 +132,7 @@ test('range selection without overlap', () => {
     expect(end.classList).not.toContain('range');
 });
 
-test('range selection with overlap', () => {
+test('range selection with overlap without touch', () => {
     const calendar = new Calendar('#calendar', {
         enableRangeSelection: true,
         allowOverlap: true,
@@ -143,7 +143,7 @@ test('range selection with overlap', () => {
 
     var begin = getDay(2, 2);
     var end = getDay(2, 10);
-    triggerEvent(begin, 'mousedown');
+    triggerEvent(begin, 'click');
     triggerEvent(end, 'mouseenter');
 
     expect(getDay(2, 5).classList).toContain('range');
@@ -158,7 +158,7 @@ test('context menu', () => {
         contextMenuItems: [
             {
                 text: 'Test 1',
-                items: [{ text: 'Subtest 1'}] 
+                items: [{ text: 'Subtest 1'}]
             },
             { text: 'Test 2' }
         ],
