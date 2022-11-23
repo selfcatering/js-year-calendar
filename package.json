@@ -57,5 +57,6 @@
     ],
     "collectCoverage": true,
     "testEnvironment": "jsdom"
-  }
+  },
+  "dependencies": {}
 }
