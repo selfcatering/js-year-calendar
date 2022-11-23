@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar</title>
+  <script src="/dist/js-year-calendar.js"></script>
+  <link rel="stylesheet" href="/dist/js-year-calendar.css">
+  <style>
+
+  </style>
+</head>
+<body>
+  <div id="calendar"></div>
+  <script>
+    function formatYMD (date) {
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+    }
+
+    new Calendar(document.querySelector('#calendar'), {
+      alwaysHalfDay: true,
+      displayHeader: false,
+      enableRangeSelection: true,
+      numberMonthsDisplayed: 2,
+      selectRange: function (range) {
+        console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
+      }
+    });
+  </script>
+</body>
+</html>

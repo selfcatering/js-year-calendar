@@ -866,20 +866,36 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 
 			/* Range selection */
 			if (this.options.enableRangeSelection) {
-				cell.addEventListener('mousedown', (e: MouseEvent) => {
-					if (e.which == 1) {
-						var currentDate = this._getDate(e.currentTarget);
+				cell.addEventListener('click', (e: MouseEvent) => {
+					// console.log('click')
+					if (this._mouseDown) {
+						this._mouseDown = false;
+						this._refreshRange();
 
-						if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
-						{
-							this._mouseDown = true;
-							this._rangeStart = this._rangeEnd = currentDate;
-							this._refreshRange();
+						var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
+						var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
+
+						this._triggerEvent('selectRange', {
+							startDate: minDate,
+							endDate: maxDate,
+							events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+						});
+					} else {
+						if (e.which == 1) {
+							var currentDate = this._getDate(e.currentTarget);
+
+							if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
+							{
+								this._mouseDown = true;
+								this._rangeStart = this._rangeEnd = currentDate;
+								this._refreshRange();
+							}
 						}
 					}
 				});
 
 				cell.addEventListener('mouseenter', e => {
+					// console.log('mouseenter')
 					if (this._mouseDown) {
 						var currentDate = this._getDate(e.currentTarget);
 
@@ -925,6 +941,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 				});
 
 				cell.addEventListener('touchstart', (e: TouchEvent) => {
+					// console.log('touchstart')
 					var currentDate = this._getDate(e.currentTarget);
 
 					if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
@@ -936,6 +953,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 				});
 
 				cell.addEventListener('touchmove', (e: TouchEvent) => {
+					// console.log('touchmove')
 					if (this._mouseDown) {
 						try {
 							var touchedElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
@@ -988,6 +1006,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 
 			/* Hover date */
 			cell.addEventListener('mouseenter', e => {
+				// console.log('mouseenter')
 				if (!this._mouseDown)
 				{
 					var date = this._getDate(e.currentTarget);
@@ -1009,25 +1028,10 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 			});
 		});
 
+		// Release range selection bound to window
 		if (this.options.enableRangeSelection) {
-			// Release range selection
-			window.addEventListener('mouseup', e => {
-				if (this._mouseDown) {
-					this._mouseDown = false;
-					this._refreshRange();
-
-					var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
-					var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
-
-					this._triggerEvent('selectRange', {
-						startDate: minDate,
-						endDate: maxDate,
-						events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
-					});
-				}
-			});
-
 			window.addEventListener('touchend', (e: TouchEvent) => {
+				// console.log('touchend')
 				if (this._mouseDown) {
 					this._mouseDown = false;
 					this._refreshRange();
@@ -1057,7 +1061,8 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 		this.element.querySelectorAll('td.day.range-start').forEach(day => day.classList.remove('range-start'));
 		this.element.querySelectorAll('td.day.range-end').forEach(day => day.classList.remove('range-end'));
 
-		if (this._mouseDown) {
+		// keep range selection always displayed
+		// if (this._mouseDown) {
 			var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
 			var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
 
@@ -1083,7 +1088,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 					});
 				}
 			});
-		}
+		// }
 	}
 
 	protected _getElementPosition(element: HTMLElement): {top: number, left: number} {
