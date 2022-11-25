@@ -880,15 +880,13 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 							events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
 						});
 					} else {
-						if (e.which == 1) {
-							var currentDate = this._getDate(e.currentTarget);
+						var currentDate = this._getDate(e.currentTarget);
 
-							if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
-							{
-								this._mouseDown = true;
-								this._rangeStart = this._rangeEnd = currentDate;
-								this._refreshRange();
-							}
+						if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
+						{
+							this._mouseDown = true;
+							this._rangeStart = this._rangeEnd = currentDate;
+							this._refreshRange();
 						}
 					}
 				});
@@ -911,7 +909,6 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 				})
 
 				cell.addEventListener('mouseenter', e => {
-					// console.log('mouseenter')
 					if (this._mouseDown) {
 						var currentDate = this._getDate(e.currentTarget);
 
@@ -956,27 +953,42 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 					}
 				});
 
+				// touch start
 				cell.addEventListener('touchstart', (e: TouchEvent) => {
-					// console.log('touchstart')
-					var currentDate = this._getDate(e.currentTarget);
-
-					if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
-					{
-						this._mouseDown = true;
-						this._rangeStart = this._rangeEnd = currentDate;
+					e.preventDefault();
+					if (this._mouseDown) {
+						this._mouseDown = false;
 						this._refreshRange();
+
+						var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
+						var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
+
+						this._triggerEvent('selectRange', {
+							startDate: minDate,
+							endDate: maxDate,
+							events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+						});
+					} else {
+						var currentDate = this._getDate(e.currentTarget);
+
+						if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
+						{
+							this._mouseDown = true;
+							this._rangeStart = this._rangeEnd = currentDate;
+							this._refreshRange();
+						}
 					}
 				});
 
+				// touchmove
 				cell.addEventListener('touchmove', (e: TouchEvent) => {
-					// console.log('touchmove')
+					console.log('touchmove')
+					e.preventDefault();
+
+					var touchedElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+					var currentDate = this._getDate(touchedElement);
+
 					if (this._mouseDown) {
-						try {
-							var touchedElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-							var currentDate = this._getDate(touchedElement);
-						} catch (error) {
-							return
-						}
 
 						if (!this.options.allowOverlap)
 						{
@@ -1017,12 +1029,63 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 							this._refreshRange();
 						}
 					}
-				});
+				})
+
+				// touchend
+				cell.addEventListener('touchend', (e: TouchEvent) => {
+					e.preventDefault();
+
+					// if `this._mouseDown === true` it means that touchstart event was triggered before this event...
+					if (this._mouseDown) {
+						// ...and if `this._rangeStart === this._rangeEnd` it means start day was clicked
+						if (this._rangeStart === this._rangeEnd) {
+							var currentDate = this._getDate(e.currentTarget);
+
+							if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
+							{
+								this._mouseDown = true;
+								this._rangeStart = this._rangeEnd = currentDate;
+								this._refreshRange();
+							}
+						}
+						// ... and it's time to end dragging started with mousedown
+						if (this._rangeStart !== this._rangeEnd) {
+							this._mouseDown = false;
+							this._refreshRange();
+
+							var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
+							var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
+
+							this._triggerEvent('selectRange', {
+								startDate: minDate,
+								endDate: maxDate,
+								events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+							});
+						}
+					}
+					// if `this._mouseDown === false` it means that start was selected and this is the ending touch...
+					else {
+						var currentDate = this._getDate(e.currentTarget);
+
+						if (this.options.allowOverlap || this.isThereFreeSlot(currentDate)) {
+							this._rangeEnd = currentDate;
+							this._refreshRange();
+
+							var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
+							var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
+
+							this._triggerEvent('selectRange', {
+								startDate: minDate,
+								endDate: maxDate,
+								events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+							});
+						}
+					}
+				})
 			}
 
 			/* Hover date */
 			cell.addEventListener('mouseenter', e => {
-				// console.log('mouseenter')
 				if (!this._mouseDown)
 				{
 					var date = this._getDate(e.currentTarget);
@@ -1046,22 +1109,6 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 
 		// Release range selection bound to window
 		if (this.options.enableRangeSelection) {
-			window.addEventListener('touchend', (e: TouchEvent) => {
-				// console.log('touchend')
-				if (this._mouseDown) {
-					this._mouseDown = false;
-					this._refreshRange();
-
-					var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
-					var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
-
-					this._triggerEvent('selectRange', {
-						startDate: minDate,
-						endDate: maxDate,
-						events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
-					});
-				}
-			});
 		}
 
 		/* Responsive management */
