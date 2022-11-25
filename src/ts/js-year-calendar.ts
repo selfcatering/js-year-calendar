@@ -866,8 +866,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 
 			/* Range selection */
 			if (this.options.enableRangeSelection) {
-				cell.addEventListener('click', (e: MouseEvent) => {
-					// console.log('click')
+				cell.addEventListener('mousedown', (e: MouseEvent) => {
 					if (this._mouseDown) {
 						this._mouseDown = false;
 						this._refreshRange();
@@ -893,6 +892,23 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 						}
 					}
 				});
+
+				cell.addEventListener('mouseup', (e: MouseEvent) => {
+					// end dragging started with mousedown
+					if (this._mouseDown && this._rangeStart !== this._rangeEnd) {
+						this._mouseDown = false;
+						this._refreshRange();
+
+						var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
+						var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
+
+						this._triggerEvent('selectRange', {
+							startDate: minDate,
+							endDate: maxDate,
+							events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+						});
+					}
+				})
 
 				cell.addEventListener('mouseenter', e => {
 					// console.log('mouseenter')
