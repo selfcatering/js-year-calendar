@@ -88,17 +88,16 @@ test('render end event', () => {
     expect(renderEndAdded).toHaveNthReturnedWith(2, { calendar, currentYear: 2000, startDate: new Date(2000, 0, 1), endDate: endDate });
 });
 
-
-test('select range event', () => {
+test('select range event without touch (click only)', () => {
     const selectRangeInit = jest.fn(e => ({ calendar: e.calendar, startDate: e.startDate, endDate: e.endDate }));
     const selectRangeAdded = jest.fn(e => ({ calendar: e.calendar, startDate: e.startDate, endDate: e.endDate }));
 
     document.querySelector('#calendar').addEventListener('selectRange', selectRangeAdded);
     const calendar = new Calendar('#calendar', { enableRangeSelection: true, selectRange: selectRangeInit });
 
-    triggerEvent(getDay(8, 10), "mousedown");
+    triggerEvent(getDay(8, 10), "click");
     triggerEvent(getDay(9, 20), "mouseenter");
-    triggerEvent(getDay(9, 20), "mouseup");
+    triggerEvent(getDay(9, 20), "click");
 
     expect(selectRangeInit).toHaveNthReturnedWith(1, { calendar, startDate: new Date(currentYear, 8, 10), endDate: new Date(currentYear, 9, 20) });
     expect(selectRangeAdded).toHaveNthReturnedWith(1, { calendar, startDate: new Date(currentYear, 8, 10), endDate: new Date(currentYear, 9, 20) });
