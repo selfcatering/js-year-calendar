@@ -838,6 +838,19 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 				e.stopPropagation();
 
 				var date = this._getDate(e.currentTarget);
+
+				//
+				const target = e.currentTarget as HTMLElement
+				console.log(
+					`
+					pointer X: ${e.offsetX}px
+					pointer Y: ${e.offsetY}px
+					element width: ${target.offsetWidth}px
+					element height: ${target.offsetHeight}px
+					`
+				);
+				//
+
 				this._triggerEvent('clickDay', {
 					element: e.currentTarget,
 					date: date,
