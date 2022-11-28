@@ -982,7 +982,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 
 				// touchmove
 				cell.addEventListener('touchmove', (e: TouchEvent) => {
-					console.log('touchmove')
+					// console.log('touchmove')
 					e.preventDefault();
 
 					var touchedElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
