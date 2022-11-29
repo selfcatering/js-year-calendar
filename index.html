@@ -8,23 +8,58 @@
   <script src="/dist/js-year-calendar.js"></script>
   <link rel="stylesheet" href="/dist/js-year-calendar.css">
   <style>
+    .wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
 
+    .wrapper #calendar {
+      flex: 0 1 400px;
+    }
   </style>
 </head>
 <body>
-  <div id="calendar"></div>
+  <div class="wrapper">
+    <div id="calendar"></div>
+  </div>
   <script>
     function formatYMD (date) {
       return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
     }
 
     new Calendar(document.querySelector('#calendar'), {
+      allowOverlap: false,
       alwaysHalfDay: true,
-      displayHeader: false,
+      displayHeader: true,
       enableRangeSelection: true,
-      numberMonthsDisplayed: 2,
+      numberMonthsDisplayed: 1,
+      startDate: new Date(2022, 11, 8),
+      style: 'background',
+      dataSource: [
+        {
+          startDate: new Date(2022, 11, 12),
+          endDate:new Date(2022, 11, 16)
+        },
+        {
+          startDate: new Date(2022, 11, 08),
+          endDate: new Date(2022, 11, 12)
+        },
+        {
+          startDate:new Date(2022, 11, 20),
+          endDate:new Date(2022, 11, 27)
+        },
+        {
+          startDate:new Date(2022, 11, 16),
+          endDate:new Date(2022, 11, 20)
+        }
+      ],
       selectRange: function (range) {
-        console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
+        // console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
+      },
+      clickDay: function (a) {
+        console.log(a.part)
       }
     });
   </script>
