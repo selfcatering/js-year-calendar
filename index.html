@@ -39,27 +39,27 @@
       style: 'background',
       dataSource: [
         {
-          startDate: new Date(2022, 11, 08),
-          endDate: new Date(2022, 11, 12)
-        },
-        {
           startDate: new Date(2022, 11, 12),
           endDate:new Date(2022, 11, 16)
         },
         {
-          startDate:new Date(2022, 11, 16),
-          endDate:new Date(2022, 11, 20)
+          startDate: new Date(2022, 11, 08),
+          endDate: new Date(2022, 11, 12)
         },
         {
           startDate:new Date(2022, 11, 20),
           endDate:new Date(2022, 11, 27)
+        },
+        {
+          startDate:new Date(2022, 11, 16),
+          endDate:new Date(2022, 11, 20)
         }
       ],
       selectRange: function (range) {
-        console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
+        // console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
       },
-      clickDay: function (a, b, c) {
-        // console.log(a, b, c)
+      clickDay: function (a) {
+        console.log(a.part)
       }
     });
   </script>

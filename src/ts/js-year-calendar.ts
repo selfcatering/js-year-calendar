@@ -837,24 +837,23 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 			cell.addEventListener('click', (e: MouseEvent) => {
 				e.stopPropagation();
 
-				var date = this._getDate(e.currentTarget);
+				const date = this._getDate(e.currentTarget);
+				let events = this.getEvents(date);
+				let part:string = null;
 
-				//
-				const target = e.currentTarget as HTMLElement
-				console.log(
-					`
-					pointer X: ${e.offsetX}px
-					pointer Y: ${e.offsetY}px
-					element width: ${target.offsetWidth}px
-					element height: ${target.offsetHeight}px
-					`
-				);
-				//
+				// handle which event only if there're two events on a single day
+				try {
+					const target = e.currentTarget as HTMLElement
+					const offset: number = target.offsetHeight * e.offsetX + target.offsetWidth * e.offsetY - target.offsetWidth * target.offsetHeight;
+					part = offset < 0 ? 'earlier' : 'later'
+				} catch (error:unknown) {
+				}
 
 				this._triggerEvent('clickDay', {
 					element: e.currentTarget,
 					date: date,
-					events: this.getEvents(date)
+					events: events,
+					part: part
 				});
 			});
 
