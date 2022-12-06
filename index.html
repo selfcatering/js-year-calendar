@@ -43,6 +43,10 @@
         //  endDate:new Date(2022, 11, 16)
         //},
         {
+          startDate: new Date(2022, 11, 5),
+          endDate: new Date(2022, 11, 8)
+        },
+        {
           startDate: new Date(2022, 11, 8),
           endDate: new Date(2022, 11, 9)
         },
@@ -58,8 +62,11 @@
       selectRange: function (range) {
         console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
       },
+      clearRange: function () {
+        console.log('clearing')
+      },
       clickDay: function (a) {
-        console.log(a.part)
+        console.log('event selected', a)
       }
     });
   </script>

@@ -25,6 +25,7 @@ import CalendarPeriodChangedEventObject from './interfaces/CalendarPeriodChanged
 import CalendarDayEventObject from './interfaces/CalendarDayEventObject';
 import CalendarRenderEndEventObject from './interfaces/CalendarRenderEndEventObject';
 import CalendarRangeEventObject from './interfaces/CalendarRangeEventObject';
+import CalendarClearRangeEventObject from './interfaces/CalendarClearRangeEventObject';
 
 // NodeList forEach() polyfill
 if (typeof NodeList !== "undefined" && !NodeList.prototype.forEach) {
@@ -162,6 +163,8 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 	 */
 	public selectRange: CalendarRangeEventObject;
 
+	public clearRange: CalendarClearRangeEventObject;
+
 	/**
 	 * Triggered after the changing the current year.
 	 * Works only if the calendar is used in a full year mode. Otherwise, use `periodChanged` event.
@@ -273,6 +276,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 		if (opt.clickDay) { this.element.addEventListener('clickDay', opt.clickDay); }
 		if (opt.dayContextMenu) { this.element.addEventListener('dayContextMenu', opt.dayContextMenu); }
 		if (opt.selectRange) { this.element.addEventListener('selectRange', opt.selectRange); }
+		if (opt.clearRange) { this.element.addEventListener('clearRange', opt.clearRange); }
 		if (opt.mouseOnDay) { this.element.addEventListener('mouseOnDay', opt.mouseOnDay); }
 		if (opt.mouseOutDay) { this.element.addEventListener('mouseOutDay', opt.mouseOutDay); }
 	}
@@ -833,104 +837,79 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 		var cells = this.element.querySelectorAll('.day:not(.old):not(.new):not(.disabled)');
 
 		cells.forEach(cell => {
-			/* Click on date */
-			cell.addEventListener('click', (e: MouseEvent) => {
+			cell.addEventListener('click', (e: PointerEvent) => {
 				e.stopPropagation();
 
-				const date = this._getDate(e.currentTarget);
-				let events = this.getEvents(date);
-				let part:string = null;
+				const currentDate = this._getDate(e.currentTarget);
+				const clickedEvent = this.getClickedEvent(currentDate, e);
 
-				// handle which event only if there're two events on a single day
-				try {
-					const target = e.currentTarget as HTMLElement
-					const offset: number = target.offsetHeight * e.offsetX + target.offsetWidth * e.offsetY - target.offsetWidth * target.offsetHeight;
-					part = offset < 0 ? 'earlier' : 'later'
-				} catch (error:unknown) {
+				// if range selection is disabled => trigger `clickDay` event
+				if (!this.options.enableRangeSelection) {
+					console.log('single day click')
+					this._triggerEvent('clickDay', {
+						element: e.currentTarget,
+						date: currentDate,
+						event: clickedEvent
+					});
 				}
-
-				this._triggerEvent('clickDay', {
-					element: e.currentTarget,
-					date: date,
-					events: events,
-					part: part
-				});
-			});
-
-			/* Click right on date */
-			cell.addEventListener('contextmenu', e => {
-				if (this.options.enableContextMenu)
-				{
-					e.preventDefault();
-					if (this.options.contextMenuItems.length > 0)
-					{
-						this._openContextMenu(e.currentTarget as HTMLElement);
-					}
-				}
-
-				var date = this._getDate(e.currentTarget);
-				this._triggerEvent('dayContextMenu', {
-					element: e.currentTarget,
-					date: date,
-					events: this.getEvents(date)
-				});
-			});
-
-			/* Range selection */
-			if (this.options.enableRangeSelection) {
-				cell.addEventListener('mousedown', (e: MouseEvent) => {
-					const currentDate = this._getDate(e.currentTarget);
-
-					if (this._mouseDown) {
-						this._mouseDown = false;
-
-						// click not allowed so reset range
-						if (!this.isThereFreeSlot(currentDate)) {
-							this._rangeStart = this._rangeEnd = null;
-							this._triggerEvent('selectRange', {
-								startDate: null,
-								endDate: null,
-								events: null
-							});
-						} else {
-							var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
-							var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
-
-							this._triggerEvent('selectRange', {
-								startDate: minDate,
-								endDate: maxDate,
-								events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+				// range selection
+				else {
+					// event clicked on range selection without overlapping enabled
+					if (clickedEvent !== null && !this.options.allowOverlap) {
+						// if range selection not yet started -> trigger clickDay event as opposed to selecting a range
+						if (!this._mouseDown) {
+							this._triggerEvent('clickDay', {
+								element: e.currentTarget,
+								date: currentDate,
+								event: clickedEvent
 							});
 						}
-
-						this._refreshRange();
+						// if range selection in progress -> clear range but do not trigger clickDay
+						else {
+							this._mouseDown = false
+							this._clearRange()
+						}
 					} else {
-						if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
-						{
-							this._mouseDown = true;
+						// first range click
+						if (!this._mouseDown) {
+							this._mouseDown = true
 							this._rangeStart = this._rangeEnd = currentDate;
 							this._refreshRange();
 						}
+						// last range click
+						else {
+							this._mouseDown = false
+
+							let minDate = null;
+							let maxDate = null;
+
+							if (this._rangeStart < currentDate) {
+								minDate = this._rangeStart
+								maxDate = currentDate
+							} else {
+								minDate = currentDate
+								maxDate = this._rangeStart
+							}
+
+							let eventsOnRange = this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
+
+							// events found in between, trigger `selectRange` only if `allowOverlap` is enabled
+							if (!this.rangeHasEvents(eventsOnRange, minDate, maxDate) || this.options.allowOverlap) {
+								this._triggerEvent('selectRange', {
+									startDate: minDate,
+									endDate: maxDate
+								});
+							} else {
+								this._clearRange()
+							}
+						}
 					}
-				});
+				}
+			});
 
-				cell.addEventListener('mouseup', (e: MouseEvent) => {
-					// end dragging started with mousedown
-					if (this._mouseDown && this._rangeStart !== this._rangeEnd) {
-						this._mouseDown = false;
-						this._refreshRange();
 
-						var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
-						var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
-
-						this._triggerEvent('selectRange', {
-							startDate: minDate,
-							endDate: maxDate,
-							events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
-						});
-					}
-				})
-
+			/* Range selection */
+			if (this.options.enableRangeSelection) {
 				cell.addEventListener('mouseenter', e => {
 					if (this._mouseDown) {
 						var currentDate = this._getDate(e.currentTarget);
@@ -975,198 +954,8 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 						}
 					}
 				});
-
-				// touch start
-				cell.addEventListener('touchstart', (e: TouchEvent) => {
-					e.preventDefault();
-					const currentDate = this._getDate(e.currentTarget);
-
-					if (this._mouseDown) {
-						this._mouseDown = false;
-						// click not allowed so reset range
-						if (!this.isThereFreeSlot(currentDate)) {
-							this._rangeStart = this._rangeEnd = null;
-							this._triggerEvent('selectRange', {
-								startDate: null,
-								endDate: null,
-								events: null
-							});
-						} else {
-							var minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
-							var maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
-
-							this._triggerEvent('selectRange', {
-								startDate: minDate,
-								endDate: maxDate,
-								events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
-							});
-						}
-
-						this._refreshRange();
-					} else {
-						if (this.options.allowOverlap || this.isThereFreeSlot(currentDate))
-						{
-							this._mouseDown = true;
-							this._rangeStart = this._rangeEnd = currentDate;
-							this._refreshRange();
-						}
-					}
-				});
-
-				// touchmove
-				cell.addEventListener('touchmove', (e: TouchEvent) => {
-					e.preventDefault();
-
-					var touchedElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-
-					// make sure touchmove is handled only on calendar day that are 'touchable'
-					if (
-						!touchedElement ||
-						!touchedElement.classList.contains('day') ||
-						touchedElement.classList.contains('old') ||
-						touchedElement.classList.contains('new')
-					) {
-						return
-					}
-
-					var currentDate = this._getDate(touchedElement);
-
-					if (this._mouseDown) {
-
-						if (!this.options.allowOverlap)
-						{
-							var newDate =  new Date(this._rangeStart.getTime());
-
-							if (newDate < currentDate) {
-								var nextDate = new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate() + 1);
-								while (newDate < currentDate) {
-									if (!this.isThereFreeSlot(nextDate, false))
-									{
-										break;
-									}
-
-									newDate.setDate(newDate.getDate() + 1);
-									nextDate.setDate(nextDate.getDate() + 1);
-								}
-							}
-							else {
-								var nextDate = new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate() - 1);
-								while (newDate > currentDate) {
-									if (!this.isThereFreeSlot(nextDate, true))
-									{
-										break;
-									}
-
-									newDate.setDate(newDate.getDate() - 1);
-									nextDate.setDate(nextDate.getDate() - 1);
-								}
-							}
-
-							currentDate = newDate;
-						}
-
-						var oldValue = this._rangeEnd;
-						this._rangeEnd = currentDate;
-
-						if (oldValue.getTime() != this._rangeEnd.getTime()) {
-							this._refreshRange();
-						}
-					}
-				})
-
-				// touchend
-				cell.addEventListener('touchend', (e: TouchEvent) => {
-					e.preventDefault();
-					const currentDate = this._getDate(e.currentTarget);
-
-					// if `this._mouseDown === true` it means that touchstart event was triggered before this event...
-					if (this._mouseDown) {
-						// ...and if `this._rangeStart === this._rangeEnd` it means start day was clicked
-						if (this._rangeStart === this._rangeEnd) {
-							if (this.options.allowOverlap || this.isThereFreeSlot(currentDate)) {
-								this._mouseDown = true;
-								this._rangeStart = this._rangeEnd = currentDate;
-							}
-						}
-						// ... and it's time to end dragging started with mousedown
-						if (this._rangeStart !== this._rangeEnd) {
-							this._mouseDown = false;
-
-							if (!this.isThereFreeSlot(currentDate)) {
-								this._rangeStart = this._rangeEnd = null;
-								this._triggerEvent('selectRange', {
-									startDate: null,
-									endDate: null,
-									events: null
-								});
-							} else {
-								let minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
-								let maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
-
-								this._triggerEvent('selectRange', {
-									startDate: minDate,
-									endDate: maxDate,
-									events: this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
-								});
-							}
-						}
-					}
-					// if `this._mouseDown === false` it means that start was selected and this is the ending touch...
-					else {
-						if (this.options.allowOverlap || this.isThereFreeSlot(currentDate)) {
-							this._rangeEnd = currentDate;
-
-							let minDate = this._rangeStart < this._rangeEnd ? this._rangeStart : this._rangeEnd;
-							let maxDate = this._rangeEnd > this._rangeStart ? this._rangeEnd : this._rangeStart;
-
-							let eventsOnRange = this.getEventsOnRange(minDate, new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate() + 1))
-							if (eventsOnRange.length > 1 || this.rangeHasEvents(eventsOnRange, minDate, maxDate)) {
-								this._rangeStart = this._rangeEnd = null;
-								this._triggerEvent('selectRange', {
-									startDate: null,
-									endDate: null,
-									events: null
-								});
-							} else {
-								this._triggerEvent('selectRange', {
-									startDate: minDate,
-									endDate: maxDate,
-									events: eventsOnRange
-								});
-							}
-						}
-					}
-
-					this._refreshRange();
-				})
 			}
-
-			/* Hover date */
-			cell.addEventListener('mouseenter', e => {
-				if (!this._mouseDown)
-				{
-					var date = this._getDate(e.currentTarget);
-					this._triggerEvent('mouseOnDay', {
-						element: e.currentTarget,
-						date: date,
-						events: this.getEvents(date)
-					});
-				}
-			});
-
-			cell.addEventListener('mouseleave', e => {
-				var date = this._getDate(e.currentTarget);
-				this._triggerEvent('mouseOutDay', {
-					element: e.currentTarget,
-					date: date,
-					events: this.getEvents(date)
-				});
-			});
 		});
-
-		// Release range selection bound to window
-		if (this.options.enableRangeSelection) {
-		}
 
 		/* Responsive management */
 		if (this._responsiveInterval) {
@@ -1174,6 +963,16 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 			this._responsiveInterval = null;
 		}
 
+	}
+
+	protected _clearRange(): void {
+		this._rangeStart = this._rangeEnd = null
+
+		this.element.querySelectorAll('td.day.range').forEach(day => day.classList.remove('range'));
+		this.element.querySelectorAll('td.day.range-start').forEach(day => day.classList.remove('range-start'));
+		this.element.querySelectorAll('td.day.range-end').forEach(day => day.classList.remove('range-end'));
+
+		this._triggerEvent('clearRange', {})
 	}
 
 	protected _refreshRange(): void {
@@ -1449,10 +1248,10 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 	}
 
 	/**
-     * Gets the week number for a specified date.
-     *
-     * @param date The specified date.
-     */
+	 * Gets the week number for a specified date.
+	 *
+	 * @param date The specified date.
+	 */
 	public getWeekNumber(date: Date): number {
 		// Algorithm from https://weeknumber.net/how-to/javascript
 		var workingDate = new Date(date.getTime());
@@ -1464,6 +1263,44 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 		// Adjust to Thursday in week 1 and count number of weeks from date to week1.
 		return 1 + Math.round(((workingDate.getTime() - week1.getTime()) / 86400000
 			- 3 + (week1.getDay() + 6) % 7) / 7);
+	}
+
+	/**
+	 * Check is an event's been clicked
+	 * @param date
+	 * @param element
+	 */
+	public getClickedEvent(date: Date, e: PointerEvent): T|null {
+		const events = this.getEvents(date);
+		let clickedEvent:T;
+
+		try {
+			const target = e.currentTarget as HTMLElement
+			const offset: number = target.offsetHeight * e.offsetX + target.offsetWidth * e.offsetY - target.offsetWidth * target.offsetHeight;
+			if (offset < 0) {
+				clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.startHalfDay) || evt.startDate < date)
+			} else {
+				clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.endHalfDay) || evt.endDate > date)
+			}
+
+		} catch (error:unknown) {
+		}
+
+		return clickedEvent || null;
+
+/*
+		if (after === true) {
+			return !events.some(evt => (!this.options.alwaysHalfDay && !evt.endHalfDay) || evt.endDate > date);
+		}
+		else if (after === false) {
+			return !events.some(evt => (!this.options.alwaysHalfDay && !evt.startHalfDay) || evt.startDate < date);
+		}
+		else {
+			return this.isThereFreeSlot(date, false) || this.isThereFreeSlot(date, true);
+		}
+*/
+
+		return null;
 	}
 
 	/**
