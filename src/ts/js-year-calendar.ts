@@ -845,7 +845,6 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 
 				// if range selection is disabled => trigger `clickDay` event
 				if (!this.options.enableRangeSelection) {
-					console.log('single day click')
 					this._triggerEvent('clickDay', {
 						element: e.currentTarget,
 						date: currentDate,
@@ -858,6 +857,10 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 					if (clickedEvent !== null && !this.options.allowOverlap) {
 						// if range selection not yet started -> trigger clickDay event as opposed to selecting a range
 						if (!this._mouseDown) {
+							// clear selected range
+							this._clearRange(false)
+
+							// trigger event
 							this._triggerEvent('clickDay', {
 								element: e.currentTarget,
 								date: currentDate,
@@ -965,14 +968,16 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 
 	}
 
-	protected _clearRange(): void {
+	protected _clearRange(triggerEvent: Boolean = false): void {
 		this._rangeStart = this._rangeEnd = null
 
 		this.element.querySelectorAll('td.day.range').forEach(day => day.classList.remove('range'));
 		this.element.querySelectorAll('td.day.range-start').forEach(day => day.classList.remove('range-start'));
 		this.element.querySelectorAll('td.day.range-end').forEach(day => day.classList.remove('range-end'));
 
-		this._triggerEvent('clearRange', {})
+		if (triggerEvent) {
+			this._triggerEvent('clearRange', {})
+		}
 	}
 
 	protected _refreshRange(): void {
