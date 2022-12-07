@@ -244,6 +244,7 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 			displayDisabledDataSource: opt.displayDisabledDataSource != null ? opt.displayDisabledDataSource : false,
 			displayHeader: opt.displayHeader != null ? opt.displayHeader : true,
 			alwaysHalfDay: opt.alwaysHalfDay != null ? opt.alwaysHalfDay : false,
+			forceFullDayClicks: opt.forceFullDayClicks != null ? opt.forceFullDayClicks : false,
 			enableRangeSelection: opt.enableRangeSelection != null ? opt.enableRangeSelection : false,
 			disabledDays: opt.disabledDays instanceof Array ? opt.disabledDays : [],
 			disabledWeekDays: opt.disabledWeekDays instanceof Array ? opt.disabledWeekDays : [],
@@ -1282,30 +1283,39 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 		try {
 			const target = e.currentTarget as HTMLElement
 			const offset: number = target.offsetHeight * e.offsetX + target.offsetWidth * e.offsetY - target.offsetWidth * target.offsetHeight;
-			if (offset < 0) {
-				clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.startHalfDay) || evt.startDate < date)
-			} else {
-				clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.endHalfDay) || evt.endDate > date)
+			// if number of events on a single day is more than 1 (one booking is ending and the other is starting) -> always process half days
+			if (!this.options.forceFullDayClicks || events.length > 1) {
+				if (offset < 0) {
+					clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.startHalfDay) || evt.startDate < date)
+				} else {
+					clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.endHalfDay) || evt.endDate > date)
+				}
 			}
-
+			// if no or one event => obey `forceFullDayClicks` option
+			else {
+				clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.startHalfDay && !evt.endHalfDay) || evt.startDate > date || evt.endDate < date)
+			}
 		} catch (error:unknown) {
 		}
 
 		return clickedEvent || null;
+	}
 
-/*
-		if (after === true) {
-			return !events.some(evt => (!this.options.alwaysHalfDay && !evt.endHalfDay) || evt.endDate > date);
-		}
-		else if (after === false) {
-			return !events.some(evt => (!this.options.alwaysHalfDay && !evt.startHalfDay) || evt.startDate < date);
-		}
-		else {
-			return this.isThereFreeSlot(date, false) || this.isThereFreeSlot(date, true);
-		}
-*/
+	/**
+	 * Check is an event's been clicked
+	 * @param date
+	 * @param element
+	 */
+	public getFullDayClickedEvent(date: Date, e: PointerEvent): T|null {
+		const events = this.getEvents(date);
+		let clickedEvent:T;
 
-		return null;
+		try {
+			clickedEvent = events.find(evt => (!this.options.alwaysHalfDay && !evt.startHalfDay && !evt.endHalfDay) || evt.startDate > date || evt.endDate < date)
+		} catch (error:unknown) {
+		}
+
+		return clickedEvent || null;
 	}
 
 	/**
@@ -1361,13 +1371,13 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 	}
 
 	/**
-     * Check if there is no event on the first part, last part or on the whole specified day.
-     *
-     * @param date The specified day.
-     * @param after Whether to check for a free slot on the first part (if `false`) or the last part (if `true`) of the day. If `null`, this will check on the whole day.
+   * Check if there is no event on the first part, last part or on the whole specified day.
+   *
+   * @param date The specified day.
+   * @param after Whether to check for a free slot on the first part (if `false`) or the last part (if `true`) of the day. If `null`, this will check on the whole day.
 	 *
 	 * Usefull only if using the `alwaysHalfDay` option of the calendar, or the `startHalfDay` or `endHalfDay` option of the datasource.
-     */
+	*/
 	public isThereFreeSlot(date: Date, after: Boolean = null): Boolean {
 		const events = this.getEvents(date);
 
@@ -1651,22 +1661,45 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 	}
 
 	/**
-     * Gets a value indicating whether the beginning and the end of each range should be displayed as half selected day.
-     */
+	 * Gets a value indicating whether the beginning and the end of each range should be displayed as half selected day.
+	 */
 	public getAlwaysHalfDay(): boolean {
 		return this.options.alwaysHalfDay;
 	}
 
 	/**
-     * Sets a value indicating whether the beginning and the end of each range should be displayed as half selected day.
+	 * Sets a value indicating whether the beginning and the end of each range should be displayed as half selected day.
 	 *
 	 * This method causes a refresh of the calendar.
-     *
-     * @param alwaysHalfDay Indicates whether the beginning and the end of each range should be displayed as half selected day.
+	 *
+	 * @param alwaysHalfDay Indicates whether the beginning and the end of each range should be displayed as half selected day.
 	 * @param preventRedering Indicates whether the rendering should be prevented after the property update.
-     */
+	*/
 	public setAlwaysHalfDay(alwaysHalfDay: boolean, preventRendering: boolean = false): void {
 		this.options.alwaysHalfDay = alwaysHalfDay;
+
+		if (!preventRendering) {
+			this.render();
+		}
+	}
+
+	/**
+	 * Gets a value indicating if fullday clicks should be processed on half days
+	 */
+	public getForceFullDayClicks(): boolean {
+		return this.options.forceFullDayClicks;
+	}
+
+	/**
+	 * Sets a value indicating if fullday clicks should be processed on half days
+	 *
+	 * This method causes a refresh of the calendar.
+	 *
+	 * @param forceFullDayClicks Indicates whether the beginning and the end of each range should be displayed as half selected day.
+	 * @param preventRedering Indicates whether the rendering should be prevented after the property update.
+	*/
+	public setForceFullDayClicks(forceFullDayClicks: boolean, preventRendering: boolean = false): void {
+		this.options.forceFullDayClicks = forceFullDayClicks;
 
 		if (!preventRendering) {
 			this.render();
