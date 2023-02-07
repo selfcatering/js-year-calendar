@@ -20,33 +20,38 @@ export default interface CalendarOptions<T extends CalendarDataSourceElement> {
      * Specifies whether the beginning and the end of each range should be displayed as half selected day.
      */
     alwaysHalfDay?: boolean;
-	
+
+    /**
+     * Specifies if fullday clicks should be processed on half days
+     */
+    forceFullDayClicks?: boolean;
+
     /**
      * Specifies the items of the default context menu.
      */
     contextMenuItems?: CalendarContextMenuItem<T>[];
-	
+
 	/**
      * Specify a custom renderer for days.
-     * 
+     *
      * The HTML Element passed in parameter represent a sub element of the "day" div. If you need to access the "day" div, use `element.parentElement`.
-     * 
+     *
 	 * This function is called during render for each day.
      */
     customDayRenderer?: (element: HTMLElement, currentDate: Date) => void;
-	
+
 	/**
      * Specify a custom renderer for data source. Works only with the style set to "custom".
-     * 
+     *
      * The HTML Element passed in parameter represent a sub element of the "day" div. If you need to access the "day" div, use `element.parentElement`.
-     * 
+     *
 	 * This function is called during render for each day containing at least one event.
      */
     customDataSourceRenderer?: (element: HTMLElement, currentDate: Date, events: T[]) => void;
 
     /**
      * The elements that must be displayed on the calendar.
-     * 
+     *
      * Could be:
      * - The datasource
      * - A function that returns the datasource
@@ -59,12 +64,12 @@ export default interface CalendarOptions<T extends CalendarDataSourceElement> {
      * The days that must be displayed as disabled.
      */
     disabledDays?: Date[];
-	
+
 	/**
      * The days of the week that must be displayed as disabled (0 for Sunday, 1 for Monday, etc.).
      */
     disabledWeekDays?: number[];
-	
+
 	/**
      * The days of the week that must not be displayed (0 for Sunday, 1 for Monday, etc.).
      */
@@ -74,12 +79,12 @@ export default interface CalendarOptions<T extends CalendarDataSourceElement> {
      * Specifies whether the data source must be rendered on disabled days.
      */
     displayDisabledDataSource?: boolean;
-	
+
     /**
      * Specifies whether the weeks number are displayed.
      */
     displayWeekNumber?: boolean;
-	
+
 	/**
      * Specifies whether the calendar header is displayed.
      */
@@ -120,7 +125,7 @@ export default interface CalendarOptions<T extends CalendarDataSourceElement> {
      * The number of months displayed by the calendar.
      */
     numberMonthsDisplayed?: number;
-	
+
 	/**
      * Specifies whether the beginning and the end of each range should be displayed as rounded cells.
      */
@@ -142,12 +147,12 @@ export default interface CalendarOptions<T extends CalendarDataSourceElement> {
      * Specifies the style used for displaying datasource ("background", "border" or "custom").
      */
     style?: string;
-	
+
 	/**
      * The starting day of the week. This option overrides the parameter define in the language file.
      */
     weekStart?: number;
-	
+
     /**
      * Function fired when a day is clicked.
      */
@@ -177,7 +182,7 @@ export default interface CalendarOptions<T extends CalendarDataSourceElement> {
      * Function fired when a date range is selected.
      */
     selectRange?: (e: CalendarRangeEventObject) => void;
-    
+
     /**
      * Function fired when the visible year of the calendar is changed.
      * This function will be fired only if the calendar is used in a full year mode. Otherwise, use `periodChanged` event.

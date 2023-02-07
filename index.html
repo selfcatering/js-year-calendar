@@ -32,34 +32,42 @@
     new Calendar(document.querySelector('#calendar'), {
       allowOverlap: false,
       alwaysHalfDay: true,
+      forceFullDayClicks: false,
       displayHeader: true,
       enableRangeSelection: true,
       numberMonthsDisplayed: 1,
-      startDate: new Date(2022, 11, 8),
+      startDate: new Date(2023, 1, 1),
       style: 'background',
       dataSource: [
+        //{
+        //  startDate: new Date(2022, 11, 12),
+        //  endDate:new Date(2022, 11, 16)
+        //},
         {
-          startDate: new Date(2022, 11, 12),
-          endDate:new Date(2022, 11, 16)
+          startDate: new Date(2023, 1, 1),
+          endDate: new Date(2023, 1, 24)
         },
         {
-          startDate: new Date(2022, 11, 08),
-          endDate: new Date(2022, 11, 12)
+          startDate: new Date(2023, 1, 24),
+          endDate: new Date(2023, 2, 4)
         },
-        {
-          startDate:new Date(2022, 11, 20),
-          endDate:new Date(2022, 11, 27)
-        },
+        // {
+        //   startDate:new Date(2022, 11, 20),
+        //   endDate:new Date(2022, 11, 27)
+        // },
         {
           startDate:new Date(2022, 11, 16),
-          endDate:new Date(2022, 11, 20)
+          endDate:new Date(2022, 11, 17)
         }
       ],
       selectRange: function (range) {
-        // console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
+        console.log(formatYMD(range.startDate) + ' to ' + formatYMD(range.endDate))
+      },
+      clearRange: function () {
+        console.log('clearing')
       },
       clickDay: function (a) {
-        console.log(a.part)
+        console.log('event selected', a)
       }
     });
   </script>
