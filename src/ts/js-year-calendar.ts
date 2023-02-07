@@ -776,7 +776,10 @@ export default class Calendar<T extends CalendarDataSourceElement> {
 					else if (this.options.roundRangeLimits) {
 						parent.classList.add('round-right');
 					}
+				} else {
+					parent.classList.add('day-booked');
 				}
+
 				break;
 
 			case 'custom':
